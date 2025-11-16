@@ -1,0 +1,1 @@
+# Cursor Clean Architecture Demo
