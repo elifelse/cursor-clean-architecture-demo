@@ -74,13 +74,16 @@ CursorDemo.sln
 - ✅ **DTO Pattern** - Clean separation between domain and API models
 - ✅ **Validation Rules** - FluentValidation for automatic request validation
 - ✅ **Global Error Handling** - Unified error responses via middleware
+- ✅ **Pagination** - Page-based navigation with configurable page size
+- ✅ **Filtering** - Search by title, author, or ISBN
+- ✅ **Sorting** - Sort by any field in ascending or descending order
 
 ## Endpoints
 
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
 | `POST` | `/api/auth/login` | ❌ | Authenticate and get JWT token |
-| `GET` | `/api/books` | ✅ | Get all books |
+| `GET` | `/api/books` | ✅ | Get books (with pagination, filtering, sorting) |
 | `GET` | `/api/books/{id}` | ✅ | Get book by ID |
 | `POST` | `/api/books` | ✅ | Create a new book |
 
@@ -170,6 +173,48 @@ All API errors (validation failures and exceptions) return a consistent `ErrorRe
 - **errors**: Dictionary of field-specific validation errors (null for exceptions)
 - **details**: Stack trace and exception details (only in Development environment, null in Production)
 
+## Pagination, Filtering & Sorting
+
+The `GET /api/books` endpoint supports pagination, filtering, and sorting through query parameters. All parameters are validated and work seamlessly with the global error handling system.
+
+### Query Parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `page` | int | 1 | Page number (minimum: 1) |
+| `pageSize` | int | 10 | Items per page (range: 1-100) |
+| `search` | string | null | Search term (filters by title, author, or ISBN) |
+| `sortBy` | string | null | Field to sort by: `title`, `author`, `isbn`, `publishedDate`, `createdAt` |
+| `desc` | bool | false | Sort in descending order |
+
+### Example Request
+
+```
+GET /api/books?page=1&pageSize=10&search=clean&sortBy=title&desc=false
+```
+
+### Example Response
+
+```json
+{
+  "items": [
+    {
+      "id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+      "title": "Clean Code",
+      "author": "Robert C. Martin",
+      "isbn": "978-0132350884",
+      "publishedDate": "2008-08-11T00:00:00Z"
+    }
+  ],
+  "page": 1,
+  "pageSize": 10,
+  "totalCount": 12,
+  "totalPages": 2
+}
+```
+
+Invalid pagination parameters (e.g., `page=0` or `pageSize=200`) return a standardized error response with validation details, consistent with other API errors.
+
 ## How to Run
 
 ### Prerequisites
@@ -218,7 +263,6 @@ dotnet run
 - Unit & integration tests
 - Entity Framework Core integration
 - CQRS with MediatR
-- Pagination and filtering
 - Background services
 
 ## License

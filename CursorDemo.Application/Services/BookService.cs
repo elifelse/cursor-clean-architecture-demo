@@ -1,5 +1,6 @@
 using CursorDemo.Application.DTOs;
 using CursorDemo.Application.Interfaces;
+using CursorDemo.Application.Models;
 using CursorDemo.Domain.Entities;
 using CursorDemo.Domain.Interfaces;
 
@@ -18,6 +19,27 @@ public class BookService : IBookService
     {
         var books = await _bookRepository.GetAllAsync();
         return books.Select(MapToDto);
+    }
+
+    public async Task<PagedResult<BookDto>> GetBooksPagedAsync(PaginationParameters parameters)
+    {
+        var (items, totalCount) = await _bookRepository.GetPagedAsync(
+            parameters.Page,
+            parameters.PageSize,
+            parameters.Search,
+            parameters.SortBy,
+            parameters.Desc);
+
+        var totalPages = (int)Math.Ceiling(totalCount / (double)parameters.PageSize);
+
+        return new PagedResult<BookDto>
+        {
+            Items = items.Select(MapToDto),
+            Page = parameters.Page,
+            PageSize = parameters.PageSize,
+            TotalCount = totalCount,
+            TotalPages = totalPages
+        };
     }
 
     public async Task<BookDto?> GetBookByIdAsync(Guid id)

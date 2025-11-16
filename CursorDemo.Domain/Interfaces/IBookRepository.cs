@@ -9,5 +9,11 @@ public interface IBookRepository
     Task<Book> AddAsync(Book book);
     Task<Book?> UpdateAsync(Book book);
     Task<bool> DeleteAsync(Guid id);
+    Task<(IEnumerable<Book> Items, int TotalCount)> GetPagedAsync(
+        int page,
+        int pageSize,
+        string? search = null,
+        string? sortBy = null,
+        bool desc = false);
 }
 
