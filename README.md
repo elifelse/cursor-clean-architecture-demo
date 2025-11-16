@@ -1,193 +1,143 @@
 # Cursor Clean Architecture Demo
 
-A .NET 8 implementation of Clean Architecture demonstrating separation of concerns across multiple layers.
+A .NET 8 Web API implementation demonstrating Clean Architecture principles with JWT authentication.
 
-## Architecture Overview
+## Overview
 
-This solution follows Clean Architecture principles, organizing code into distinct layers with clear dependencies:
+This solution showcases a production-ready Clean Architecture structure with clear separation of concerns across four layers: Api, Application, Domain, and Infrastructure. The project includes JWT authentication, Swagger documentation, and an in-memory repository for rapid development.
+
+## Architecture
 
 ```
 ┌─────────────────────────────────────┐
-│         CursorDemo.Api              │  ← Presentation Layer (Controllers, API endpoints)
-│    (ASP.NET Core Web API)           │
+│         CursorDemo.Api              │
+│    (Controllers, Routing, Auth)     │
 └──────────────┬──────────────────────┘
                │
        ┌───────┴────────┐
        │                │
 ┌──────▼──────┐  ┌─────▼──────────────┐
-│ Application │  │  Infrastructure    │  ← Application Logic & External Concerns
-│             │  │  (Repositories)    │
+│ Application │  │  Infrastructure    │
+│ (Services,  │  │  (Repositories,    │
+│  DTOs,      │  │   TokenService)    │
+│  Interfaces) │  │                    │
 └──────┬──────┘  └─────┬──────────────┘
        │                │
        └───────┬────────┘
                │
        ┌───────▼──────┐
-       │    Domain    │  ← Core Business Entities & Interfaces
-       │  (Entities)  │
+       │    Domain    │
+       │  (Entities,  │
+       │  Interfaces) │
        └──────────────┘
 ```
 
-## Project Structure
+**Dependency Flow:** Api → Application & Infrastructure → Domain
 
-### 1. **CursorDemo.Domain** (Core Layer)
-The innermost layer containing business entities and interfaces. This layer has no dependencies on other projects.
+## Layer Responsibilities
 
-- **Entities/**: Domain entities (e.g., `Book`)
-- **Interfaces/**: Repository interfaces (e.g., `IBookRepository`)
+| Layer | Responsibility | Dependencies |
+|-------|---------------|--------------|
+| **Api** | HTTP handling, routing, authentication, DI configuration | Application, Infrastructure |
+| **Application** | Business logic, use cases, DTOs, service interfaces | Domain |
+| **Domain** | Core entities, repository interfaces | None |
+| **Infrastructure** | Repository implementations, external services | Domain, Application |
 
-**Key Points:**
-- Pure business logic
-- No external dependencies
-- Defines contracts (interfaces) that other layers implement
+## Folder Structure
 
-### 2. **CursorDemo.Application** (Application Layer)
-Contains application-specific business logic, use cases, and DTOs.
-
-- **DTOs/**: Data Transfer Objects for API communication
-- **Interfaces/**: Service interfaces (e.g., `IBookService`)
-- **Services/**: Application services implementing business logic
-
-**Key Points:**
-- Depends only on Domain
-- Contains use cases and application workflows
-- Defines service interfaces consumed by the API layer
-
-### 3. **CursorDemo.Infrastructure** (Infrastructure Layer)
-Implements external concerns like data access, file systems, or third-party services.
-
-- **Repositories/**: Concrete implementations of domain repository interfaces (e.g., `InMemoryBookRepository`)
-
-**Key Points:**
-- Depends on Domain (implements domain interfaces)
-- Contains concrete implementations
-- Can be swapped without affecting other layers (e.g., replace InMemory with Entity Framework)
-
-### 4. **CursorDemo.Api** (Presentation Layer)
-The outermost layer containing controllers, API endpoints, and dependency injection configuration.
-
-- **Controllers/**: API controllers (e.g., `BooksController`)
-- **Program.cs**: Application startup and DI configuration
-
-**Key Points:**
-- Depends on Application and Infrastructure
-- Handles HTTP requests/responses
-- Configures dependency injection
-- No business logic, only orchestration
-
-## Dependency Flow
-
-The dependency rule ensures that dependencies point inward:
-
-- **Api** → **Application** & **Infrastructure**
-- **Application** → **Domain**
-- **Infrastructure** → **Domain**
-
-This means:
-- Domain has no dependencies
-- Application depends only on Domain
-- Infrastructure depends only on Domain
-- Api depends on Application and Infrastructure
+```
+CursorDemo.sln
+├── CursorDemo.Api/
+│   ├── Controllers/          # AuthController, BooksController
+│   ├── Program.cs            # Startup & DI
+│   └── appsettings.json      # Configuration
+├── CursorDemo.Application/
+│   ├── Configuration/        # JwtSettings
+│   ├── DTOs/                 # BookDto, CreateBookDto, LoginDto, TokenResponseDto
+│   ├── Interfaces/           # IBookService, ITokenService
+│   └── Services/             # BookService
+├── CursorDemo.Domain/
+│   ├── Entities/             # Book
+│   └── Interfaces/           # IBookRepository
+└── CursorDemo.Infrastructure/
+    ├── Repositories/         # InMemoryBookRepository
+    └── Services/             # TokenService
+```
 
 ## Features
 
-### Book Management
-- **GET /api/books**: Retrieve all books
-- **GET /api/books/{id}**: Get a specific book by ID
-- **POST /api/books**: Create a new book
+- ✅ **Clean Architecture** - 4-layer separation with dependency inversion
+- ✅ **JWT Authentication** - Token-based security with Bearer tokens
+- ✅ **Book CRUD** - Create, read operations with in-memory storage
+- ✅ **Swagger UI** - Interactive API documentation with JWT support
+- ✅ **Dependency Injection** - Interface-based DI configuration
+- ✅ **DTO Pattern** - Clean separation between domain and API models
 
-### Sample Data
-The `InMemoryBookRepository` is pre-seeded with sample books for demonstration purposes.
+## Endpoints
 
-## Getting Started
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| `POST` | `/api/auth/login` | ❌ | Authenticate and get JWT token |
+| `GET` | `/api/books` | ✅ | Get all books |
+| `GET` | `/api/books/{id}` | ✅ | Get book by ID |
+| `POST` | `/api/books` | ✅ | Create a new book |
+
+**Demo Credentials:**
+- Username: `elif`
+- Password: `1234`
+
+## How to Run
 
 ### Prerequisites
-- .NET 8 SDK installed
-- Your favorite IDE (Visual Studio, VS Code, Rider, etc.)
+- .NET 8 SDK
 
-### Running the Application
+### Steps
 
-1. **Restore dependencies:**
-   ```bash
-   dotnet restore
-   ```
-
-2. **Build the solution:**
-   ```bash
-   dotnet build
-   ```
-
-3. **Run the API:**
-   ```bash
-   cd CursorDemo.Api
-   dotnet run
-   ```
-
-4. **Access Swagger UI:**
-   Navigate to `https://localhost:5001/swagger` (or `http://localhost:5000/swagger`)
-
-### Testing the API
-
-**Get all books:**
 ```bash
-curl https://localhost:5001/api/books
+# Restore dependencies
+dotnet restore
+
+# Build solution
+dotnet build
+
+# Run API
+cd CursorDemo.Api
+dotnet run
 ```
 
-**Create a new book:**
-```bash
-curl -X POST https://localhost:5001/api/books \
-  -H "Content-Type: application/json" \
-  -d '{
-    "title": "Design Patterns",
-    "author": "Gang of Four",
-    "isbn": "978-0201633610",
-    "publishedDate": "1994-10-21T00:00:00Z"
-  }'
-```
+**Access:**
+- API: `https://localhost:5001` or `http://localhost:5000`
+- Swagger: `https://localhost:5001/swagger`
 
-## Clean Architecture Benefits
+### Testing Authentication
 
-1. **Independence**: Business logic is independent of frameworks, UI, and databases
-2. **Testability**: Easy to unit test business logic without external dependencies
-3. **Flexibility**: Can swap out infrastructure (database, external services) without changing business logic
-4. **Maintainability**: Clear separation of concerns makes code easier to understand and maintain
-5. **Scalability**: Easy to add new features without affecting existing code
+1. Open Swagger UI
+2. Call `POST /api/auth/login` with credentials
+3. Copy the token from response
+4. Click "Authorize" button and enter: `Bearer <token>`
+5. Test protected endpoints
 
-## Project References
+## Technologies
 
-The solution maintains proper dependency flow:
-
-- `CursorDemo.Api.csproj` references:
-  - `CursorDemo.Application`
-  - `CursorDemo.Infrastructure`
-
-- `CursorDemo.Application.csproj` references:
-  - `CursorDemo.Domain`
-
-- `CursorDemo.Infrastructure.csproj` references:
-  - `CursorDemo.Domain`
-
-- `CursorDemo.Domain.csproj` has no project references
-
-## Dependency Injection
-
-Services are registered in `Program.cs`:
-
-```csharp
-builder.Services.AddScoped<IBookRepository, InMemoryBookRepository>();
-builder.Services.AddScoped<IBookService, BookService>();
-```
-
-This follows the Dependency Inversion Principle - high-level modules (Application) depend on abstractions (interfaces), not concrete implementations.
+| Technology | Purpose |
+|-----------|---------|
+| .NET 8 | Core framework |
+| ASP.NET Core | Web API framework |
+| JWT Bearer | Authentication |
+| Swagger/OpenAPI | API documentation |
+| Clean Architecture | Architecture pattern |
 
 ## Future Enhancements
 
-- Add Entity Framework Core for persistent storage
-- Implement CQRS pattern with MediatR
-- Add validation using FluentValidation
-- Implement unit and integration tests
-- Add authentication and authorization
-- Implement logging and error handling middleware
+- Input validation (FluentValidation)
+- Global error handling middleware
+- Structured logging (Serilog)
+- Unit & integration tests
+- Entity Framework Core integration
+- CQRS with MediatR
+- Pagination and filtering
+- Background services
 
 ## License
 
-See LICENSE file for details.
+MIT License - see [LICENSE](LICENSE) file for details.

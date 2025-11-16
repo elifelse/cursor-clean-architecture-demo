@@ -8,6 +8,11 @@
 
   <ItemGroup>
     <ProjectReference Include="..\CursorDemo.Domain\CursorDemo.Domain.csproj" />
+    <ProjectReference Include="..\CursorDemo.Application\CursorDemo.Application.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.0.0" />
   </ItemGroup>
 
 </Project>
