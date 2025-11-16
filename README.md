@@ -78,6 +78,7 @@ CursorDemo.sln
 - ✅ **Filtering** - Search by title, author, or ISBN
 - ✅ **Sorting** - Sort by any field in ascending or descending order
 - ✅ **Serilog Structured Logging** - Console and file logging with structured output
+- ✅ **Background Worker** - Long-running hosted service for periodic tasks
 
 ## Endpoints
 
@@ -218,7 +219,7 @@ Invalid pagination parameters (e.g., `page=0` or `pageSize=200`) return a standa
 
 ## Logging (Serilog)
 
-The application uses Serilog for structured logging, providing rich, structured log output that's easy to query and analyze.
+The application uses Serilog for structured logging, providing rich, structured log output that's easy to query and analyze. Serilog is configured at startup and automatically captures all application events.
 
 **Configuration:**
 - **Sinks**: Console (for development) and File (for persistence)
@@ -229,6 +230,7 @@ The application uses Serilog for structured logging, providing rich, structured 
 - Application lifecycle events (startup, shutdown)
 - HTTP requests (method, path, status code, response time)
 - Exceptions and errors (with full stack traces)
+- Background worker execution
 - All application events at Information level and above
 
 **Example Log Output:**
@@ -236,10 +238,31 @@ The application uses Serilog for structured logging, providing rich, structured 
 [2024-01-15 10:30:00 INF] Starting web application
 [2024-01-15 10:30:01 INF] Application started successfully
 [2024-01-15 10:30:15 INF] HTTP GET /api/books responded 200 in 45ms
-[2024-01-15 10:30:20 ERR] An unhandled exception occurred: ...
+[2024-01-15 10:30:30 INF] Background refresh executed at 2024-01-15 10:30:30
 ```
 
 Serilog is configured in `Program.cs` and `appsettings.json`, allowing easy customization of log levels and output destinations.
+
+## Background Worker
+
+The application includes a background worker service (`BackgroundBookRefresherService`) that runs periodic tasks independently of HTTP requests. Background workers in .NET are implemented as `IHostedService` and run for the lifetime of the application.
+
+**Features:**
+- Runs every 30 seconds automatically
+- Executes independently of API requests
+- Uses dependency injection to access repositories and services
+- Logs all execution events via Serilog
+- Gracefully shuts down when the application stops
+
+**Example Startup Logs:**
+```
+[2024-01-15 10:30:00 INF] BackgroundBookRefresherService is starting.
+[2024-01-15 10:30:00 INF] BackgroundBookRefresherService started. Refresh interval: 30 seconds
+[2024-01-15 10:30:30 INF] Background refresh executed at 2024-01-15 10:30:30
+[2024-01-15 10:31:00 INF] Background refresh executed at 2024-01-15 10:31:00
+```
+
+The background service is registered in `Program.cs` using `AddHostedService<T>()` and automatically starts when the application launches.
 
 ## How to Run
 
@@ -289,7 +312,6 @@ dotnet run
 - Unit & integration tests
 - Entity Framework Core integration
 - CQRS with MediatR
-- Background services
 
 ## License
 

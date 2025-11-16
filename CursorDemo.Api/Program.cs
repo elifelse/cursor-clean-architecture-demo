@@ -130,6 +130,9 @@ try
     builder.Services.AddScoped<IBookService, BookService>();
     builder.Services.AddScoped<ITokenService, TokenService>();
 
+    // Background Services
+    builder.Services.AddHostedService<BackgroundBookRefresherService>();
+
     var app = builder.Build();
 
     // Configure the HTTP request pipeline
