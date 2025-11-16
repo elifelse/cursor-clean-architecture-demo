@@ -1,10 +1,14 @@
 using System.Text;
+using CursorDemo.Api.Extensions;
+using CursorDemo.Api.Filters;
+using CursorDemo.Api.Models;
 using CursorDemo.Application.Configuration;
 using CursorDemo.Application.Interfaces;
 using CursorDemo.Application.Services;
 using CursorDemo.Domain.Interfaces;
 using CursorDemo.Infrastructure.Repositories;
 using CursorDemo.Infrastructure.Services;
+using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -12,7 +16,17 @@ using Microsoft.OpenApi.Models;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container
-builder.Services.AddControllers();
+builder.Services.AddControllers(options =>
+    {
+        // Add validation filter to format FluentValidation errors
+        options.Filters.Add<ValidationFilter>();
+    })
+    .ConfigureApiBehaviorOptions(options =>
+    {
+        // Disable automatic model state validation to use FluentValidation instead
+        options.SuppressModelStateInvalidFilter = true;
+    });
+
 builder.Services.AddEndpointsApiExplorer();
 
 // Configure JWT Settings
@@ -48,8 +62,16 @@ builder.Services.AddSwaggerGen(c =>
     {
         Title = "CursorDemo API",
         Version = "v1",
-        Description = "Clean Architecture Demo API with JWT Authentication"
+        Description = "Clean Architecture Demo API with JWT Authentication and FluentValidation"
     });
+
+    // Include XML comments for better Swagger documentation
+    var xmlFile = $"{System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}.xml";
+    var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+    if (File.Exists(xmlPath))
+    {
+        c.IncludeXmlComments(xmlPath);
+    }
 
     // Add JWT authentication to Swagger
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
@@ -77,6 +99,14 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
+// FluentValidation
+builder.Services.AddFluentValidationServices();
+builder.Services.AddFluentValidationAutoValidation(config =>
+{
+    // Configure FluentValidation to run automatically
+    config.DisableDataAnnotationsValidation = true;
+});
+
 // Dependency Injection
 builder.Services.AddScoped<IBookRepository, InMemoryBookRepository>();
 builder.Services.AddScoped<IBookService, BookService>();
@@ -85,6 +115,9 @@ builder.Services.AddScoped<ITokenService, TokenService>();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline
+// Global exception handling must be first
+app.UseGlobalExceptionHandling();
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();

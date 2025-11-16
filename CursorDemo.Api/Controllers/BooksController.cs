@@ -1,3 +1,4 @@
+using CursorDemo.Api.Models;
 using CursorDemo.Application.DTOs;
 using CursorDemo.Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;
@@ -44,7 +45,20 @@ public class BooksController : ControllerBase
     /// <summary>
     /// Create a new book
     /// </summary>
+    /// <remarks>
+    /// Validation rules:
+    /// - Title: Required, minimum 3 characters
+    /// - Author: Required, minimum 3 characters
+    /// - ISBN: Required
+    /// - PublishedDate: Required, cannot be in the future
+    /// </remarks>
+    /// <param name="createBookDto">Book creation data</param>
+    /// <returns>Created book with generated ID</returns>
+    /// <response code="201">Book created successfully</response>
+    /// <response code="400">Validation errors</response>
     [HttpPost]
+    [ProducesResponseType(typeof(BookDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<BookDto>> CreateBook(CreateBookDto createBookDto)
     {
         var book = await _bookService.CreateBookAsync(createBookDto);

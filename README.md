@@ -72,6 +72,8 @@ CursorDemo.sln
 - ✅ **Swagger UI** - Interactive API documentation with JWT support
 - ✅ **Dependency Injection** - Interface-based DI configuration
 - ✅ **DTO Pattern** - Clean separation between domain and API models
+- ✅ **Validation Rules** - FluentValidation for automatic request validation
+- ✅ **Global Error Handling** - Unified error responses via middleware
 
 ## Endpoints
 
@@ -85,6 +87,75 @@ CursorDemo.sln
 **Demo Credentials:**
 - Username: `elif`
 - Password: `1234`
+
+## Validation & Error Handling
+
+### FluentValidation
+
+The API uses FluentValidation for automatic request validation. Validators are defined in the Application layer and run automatically before controller actions execute.
+
+**Example Validator:**
+```csharp
+public class CreateBookDtoValidator : AbstractValidator<CreateBookDto>
+{
+    public CreateBookDtoValidator()
+    {
+        RuleFor(x => x.Title)
+            .NotEmpty()
+            .MinimumLength(3);
+        
+        RuleFor(x => x.Author)
+            .NotEmpty()
+            .MinimumLength(3);
+    }
+}
+```
+
+### Global Exception Handling
+
+The `ExceptionHandlingMiddleware` catches all unhandled exceptions, logs them, and returns standardized error responses. It runs early in the middleware pipeline to ensure all errors are handled consistently.
+
+**Example Middleware:**
+```csharp
+public class ExceptionHandlingMiddleware
+{
+    public async Task InvokeAsync(HttpContext context)
+    {
+        try
+        {
+            await _next(context);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An unhandled exception occurred");
+            await HandleExceptionAsync(context, ex);
+        }
+    }
+}
+```
+
+### Error Response Format
+
+All API errors return a consistent `ErrorResponse` format:
+
+```json
+{
+  "statusCode": 400,
+  "message": "Validation failed. Please check the errors and try again.",
+  "errors": {
+    "ISBN": ["ISBN is required."],
+    "Title": ["Title must be at least 3 characters long."],
+    "Author": ["Author is required.", "Author must be at least 3 characters long."],
+    "PublishedDate": ["Published date is required."]
+  },
+  "details": null
+}
+```
+
+- **statusCode**: HTTP status code
+- **message**: Human-readable error message
+- **errors**: Dictionary of field-specific validation errors (only for validation failures)
+- **details**: Stack trace and exception details (only in Development environment)
 
 ## How to Run
 
@@ -124,13 +195,12 @@ dotnet run
 | .NET 8 | Core framework |
 | ASP.NET Core | Web API framework |
 | JWT Bearer | Authentication |
+| FluentValidation | Request validation |
 | Swagger/OpenAPI | API documentation |
 | Clean Architecture | Architecture pattern |
 
 ## Future Enhancements
 
-- Input validation (FluentValidation)
-- Global error handling middleware
 - Structured logging (Serilog)
 - Unit & integration tests
 - Entity Framework Core integration
