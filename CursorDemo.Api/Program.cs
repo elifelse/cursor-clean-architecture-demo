@@ -1,6 +1,7 @@
 using System.Text;
 using CursorDemo.Api.Extensions;
 using CursorDemo.Api.Filters;
+using CursorDemo.Api.Middleware;
 using CursorDemo.Api.Models;
 using CursorDemo.Application.Configuration;
 using CursorDemo.Application.Interfaces;
@@ -115,9 +116,6 @@ builder.Services.AddScoped<ITokenService, TokenService>();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline
-// Global exception handling must be first
-app.UseGlobalExceptionHandling();
-
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -125,6 +123,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseGlobalExceptionMiddleware();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();

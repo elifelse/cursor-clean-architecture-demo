@@ -9,11 +9,11 @@ public static class ApplicationBuilderExtensions
 {
     /// <summary>
     /// Adds global exception handling middleware to the pipeline
-    /// This should be called early in the pipeline, before other middleware that writes responses
+    /// This middleware catches all unhandled exceptions and returns standardized error responses
     /// </summary>
-    public static IApplicationBuilder UseGlobalExceptionHandling(this IApplicationBuilder app)
+    public static IApplicationBuilder UseGlobalExceptionMiddleware(this IApplicationBuilder app)
     {
-        return app.UseMiddleware<ExceptionHandlingMiddleware>();
+        return app.UseMiddleware<GlobalExceptionMiddleware>();
     }
 }
 

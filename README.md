@@ -92,7 +92,13 @@ CursorDemo.sln
 
 ### FluentValidation
 
-The API uses FluentValidation for automatic request validation. Validators are defined in the Application layer and run automatically before controller actions execute.
+The API uses FluentValidation for automatic request validation. Validators are defined in the Application layer and run automatically before controller actions execute. This ensures all incoming requests are validated according to business rules without requiring manual checks in controllers.
+
+**How It Works:**
+- Validators are registered automatically via dependency injection
+- Validation runs before the controller action is invoked
+- Invalid requests return a 400 Bad Request with detailed field-level error messages
+- Controllers remain clean with no manual validation logic
 
 **Example Validator:**
 ```csharp
@@ -102,42 +108,38 @@ public class CreateBookDtoValidator : AbstractValidator<CreateBookDto>
     {
         RuleFor(x => x.Title)
             .NotEmpty()
-            .MinimumLength(3);
+            .WithMessage("Title is required.")
+            .MinimumLength(3)
+            .WithMessage("Title must be at least 3 characters long.");
         
         RuleFor(x => x.Author)
             .NotEmpty()
-            .MinimumLength(3);
+            .WithMessage("Author is required.")
+            .MinimumLength(3)
+            .WithMessage("Author must be at least 3 characters long.");
     }
 }
 ```
 
 ### Global Exception Handling
 
-The `ExceptionHandlingMiddleware` catches all unhandled exceptions, logs them, and returns standardized error responses. It runs early in the middleware pipeline to ensure all errors are handled consistently.
+The `GlobalExceptionMiddleware` catches all unhandled exceptions, logs them, and returns standardized error responses. It runs in the middleware pipeline after HTTPS redirection to ensure all errors are handled consistently without interfering with validation errors.
 
-**Example Middleware:**
-```csharp
-public class ExceptionHandlingMiddleware
-{
-    public async Task InvokeAsync(HttpContext context)
-    {
-        try
-        {
-            await _next(context);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "An unhandled exception occurred");
-            await HandleExceptionAsync(context, ex);
-        }
-    }
-}
-```
+**Features:**
+- Catches all unhandled exceptions
+- Maps common exception types to appropriate HTTP status codes:
+  - `KeyNotFoundException` → 404 Not Found
+  - `UnauthorizedAccessException` → 401 Unauthorized
+  - `ArgumentException` → 400 Bad Request
+  - All others → 500 Internal Server Error
+- Logs exception details for debugging
+- Returns standardized error responses matching validation error format
 
-### Error Response Format
+### Standardized Error Response
 
-All API errors return a consistent `ErrorResponse` format:
+All API errors (validation failures and exceptions) return a consistent `ErrorResponse` format:
 
+**Validation Error Example:**
 ```json
 {
   "statusCode": 400,
@@ -152,10 +154,21 @@ All API errors return a consistent `ErrorResponse` format:
 }
 ```
 
-- **statusCode**: HTTP status code
+**Exception Error Example:**
+```json
+{
+  "statusCode": 500,
+  "message": "An error occurred while processing your request.",
+  "errors": null,
+  "details": "System.Exception: ... (only in Development environment)"
+}
+```
+
+**Response Fields:**
+- **statusCode**: HTTP status code (400, 401, 404, 500, etc.)
 - **message**: Human-readable error message
-- **errors**: Dictionary of field-specific validation errors (only for validation failures)
-- **details**: Stack trace and exception details (only in Development environment)
+- **errors**: Dictionary of field-specific validation errors (null for exceptions)
+- **details**: Stack trace and exception details (only in Development environment, null in Production)
 
 ## How to Run
 
