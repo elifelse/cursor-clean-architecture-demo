@@ -77,6 +77,7 @@ CursorDemo.sln
 - ✅ **Pagination** - Page-based navigation with configurable page size
 - ✅ **Filtering** - Search by title, author, or ISBN
 - ✅ **Sorting** - Sort by any field in ascending or descending order
+- ✅ **Serilog Structured Logging** - Console and file logging with structured output
 
 ## Endpoints
 
@@ -215,6 +216,31 @@ GET /api/books?page=1&pageSize=10&search=clean&sortBy=title&desc=false
 
 Invalid pagination parameters (e.g., `page=0` or `pageSize=200`) return a standardized error response with validation details, consistent with other API errors.
 
+## Logging (Serilog)
+
+The application uses Serilog for structured logging, providing rich, structured log output that's easy to query and analyze.
+
+**Configuration:**
+- **Sinks**: Console (for development) and File (for persistence)
+- **Log File**: `logs/app.log` (daily rolling)
+- **Minimum Level**: Information
+
+**What Gets Logged:**
+- Application lifecycle events (startup, shutdown)
+- HTTP requests (method, path, status code, response time)
+- Exceptions and errors (with full stack traces)
+- All application events at Information level and above
+
+**Example Log Output:**
+```
+[2024-01-15 10:30:00 INF] Starting web application
+[2024-01-15 10:30:01 INF] Application started successfully
+[2024-01-15 10:30:15 INF] HTTP GET /api/books responded 200 in 45ms
+[2024-01-15 10:30:20 ERR] An unhandled exception occurred: ...
+```
+
+Serilog is configured in `Program.cs` and `appsettings.json`, allowing easy customization of log levels and output destinations.
+
 ## How to Run
 
 ### Prerequisites
@@ -254,12 +280,12 @@ dotnet run
 | ASP.NET Core | Web API framework |
 | JWT Bearer | Authentication |
 | FluentValidation | Request validation |
+| Serilog | Structured logging |
 | Swagger/OpenAPI | API documentation |
 | Clean Architecture | Architecture pattern |
 
 ## Future Enhancements
 
-- Structured logging (Serilog)
 - Unit & integration tests
 - Entity Framework Core integration
 - CQRS with MediatR
