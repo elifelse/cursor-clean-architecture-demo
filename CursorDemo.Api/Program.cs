@@ -13,6 +13,7 @@ using CursorDemo.Application.Services;
 using CursorDemo.Domain.Interfaces;
 using CursorDemo.Infrastructure.Repositories;
 using CursorDemo.Infrastructure.Services;
+using Microsoft.Extensions.Caching.Memory;
 using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Configuration;
@@ -151,6 +152,10 @@ try
         // Configure FluentValidation to run automatically
         config.DisableDataAnnotationsValidation = true;
     });
+
+    // Caching
+    builder.Services.AddMemoryCache();
+    builder.Services.AddSingleton<ICacheService, MemoryCacheService>();
 
     // Dependency Injection
     builder.Services.AddScoped<IBookRepository, InMemoryBookRepository>();

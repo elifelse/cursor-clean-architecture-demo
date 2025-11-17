@@ -79,6 +79,7 @@ CursorDemo.sln
 - ✅ **Sorting** - Sort by any field in ascending or descending order
 - ✅ **Serilog Structured Logging** - Console and file logging with structured output
 - ✅ **Background Worker** - Long-running hosted service for periodic tasks
+- ✅ **In-Memory Caching** - Performance optimization with configurable cache expiration and pattern-based invalidation
 
 ## Endpoints
 
@@ -92,6 +93,34 @@ CursorDemo.sln
 **Demo Credentials:**
 - Username: `elif`
 - Password: `1234`
+
+## Backend API Versioning
+
+The API uses URL segment-based versioning with the `Asp.Versioning` library. Versions are specified in the URL path: `/api/v1/...` or `/api/v2/...`.
+
+**Configuration:**
+- Default version: 1.0
+- Versioning strategy: URL segment (`UrlSegmentApiVersionReader`)
+- Swagger generates separate documentation for each version
+
+**Controller Versioning Approaches:**
+
+1. **Single Controller, Multiple Versions** - `AuthController` supports both v1.0 and v2.0:
+   ```csharp
+   [ApiVersion("1.0")]
+   [ApiVersion("2.0")]
+   [Route("api/v{version:apiVersion}/[controller]")]
+   ```
+
+2. **Separate Controllers** - `BooksController` (v1.0) and `BooksV2Controller` (v2.0) for different implementations.
+
+**Versioned Endpoints:**
+- `POST /api/v1/auth/login` or `/api/v2/auth/login`
+- `GET /api/v1/books` (v1.0) or `/api/v2/BooksV` (v2.0)
+- `GET /api/v1/books/{id}` (v1.0) or `/api/v2/BooksV/{id}` (v2.0)
+- `POST /api/v1/books` (v1.0) or `/api/v2/BooksV` (v2.0)
+
+Swagger UI displays a version selector to switch between API versions.
 
 ## Validation & Error Handling
 
@@ -263,6 +292,92 @@ The application includes a background worker service (`BackgroundBookRefresherSe
 ```
 
 The background service is registered in `Program.cs` using `AddHostedService<T>()` and automatically starts when the application launches.
+
+## Caching
+
+The application implements in-memory caching to improve performance by reducing database/repository calls. Caching is implemented using the `ICacheService` interface with a `MemoryCacheService` implementation.
+
+### Architecture
+
+**Interface Layer (Application):**
+- `ICacheService` - Defines caching operations: `Get<T>`, `Set<T>`, `Remove`, and `RemoveByPattern`
+
+**Implementation Layer (Infrastructure):**
+- `MemoryCacheService` - In-memory cache implementation using `IMemoryCache` from .NET
+
+### Implementation Details
+
+**Cache Service Features:**
+- Generic type support for caching any object type
+- Configurable expiration times
+- Pattern-based cache invalidation (e.g., `books:*`)
+- Automatic key registry for pattern matching
+
+**BookService Caching:**
+- **List Results**: `GetBooksPagedAsync` results are cached for 30 seconds
+- **Cache Key Generation**: Keys are generated based on pagination parameters (page, pageSize, search, sortBy, desc) to ensure different queries are cached separately
+- **Cache Invalidation**: When a new book is created via `CreateBookAsync`, all book list caches are invalidated using pattern-based removal (`books:*`)
+
+**Example Cache Keys:**
+```
+books:paged:page:1:pageSize:10:desc:False
+books:paged:page:1:pageSize:10:search:clean:sortBy:title:desc:False
+```
+
+### Configuration
+
+Caching is registered in `Program.cs`:
+
+```csharp
+// Caching
+builder.Services.AddMemoryCache();
+builder.Services.AddSingleton<ICacheService, MemoryCacheService>();
+```
+
+The `MemoryCacheService` is registered as a singleton since it manages the cache state, while `IMemoryCache` is provided by the framework.
+
+### Usage Example
+
+```csharp
+public class BookService : IBookService
+{
+    private readonly ICacheService _cacheService;
+    
+    public async Task<PagedResult<BookDto>> GetBooksPagedAsync(PaginationParameters parameters)
+    {
+        var cacheKey = GenerateCacheKey(parameters);
+        
+        // Try cache first
+        var cached = _cacheService.Get<PagedResult<BookDto>>(cacheKey);
+        if (cached != null) return cached;
+        
+        // Fetch from repository if not cached
+        var result = await _bookRepository.GetPagedAsync(...);
+        
+        // Cache for 30 seconds
+        _cacheService.Set(cacheKey, result, TimeSpan.FromSeconds(30));
+        
+        return result;
+    }
+    
+    public async Task<BookDto> CreateBookAsync(CreateBookDto dto)
+    {
+        var book = await _bookRepository.AddAsync(...);
+        
+        // Invalidate all book caches
+        _cacheService.RemoveByPattern("books:*");
+        
+        return book;
+    }
+}
+```
+
+### Benefits
+
+- **Performance**: Reduces repository calls for frequently accessed data
+- **Scalability**: Helps handle high-traffic scenarios by serving cached responses
+- **Flexibility**: Pattern-based invalidation allows selective cache clearing
+- **Clean Architecture**: Caching logic is abstracted behind an interface, making it easy to swap implementations (e.g., Redis for distributed caching)
 
 ## How to Run
 
