@@ -48,20 +48,20 @@ This solution showcases a production-ready Clean Architecture structure with cle
 ```
 CursorDemo.sln
 ├── CursorDemo.Api/
-│   ├── Controllers/          # AuthController, BooksController
+│   ├── Controllers/          # AuthController, BooksController, BooksV2Controller, CacheTestController
 │   ├── Program.cs            # Startup & DI
 │   └── appsettings.json      # Configuration
 ├── CursorDemo.Application/
 │   ├── Configuration/        # JwtSettings
 │   ├── DTOs/                 # BookDto, CreateBookDto, LoginDto, TokenResponseDto
-│   ├── Interfaces/           # IBookService, ITokenService
+│   ├── Interfaces/           # IBookService, ITokenService, ICacheService
 │   └── Services/             # BookService
 ├── CursorDemo.Domain/
 │   ├── Entities/             # Book
 │   └── Interfaces/           # IBookRepository
 └── CursorDemo.Infrastructure/
     ├── Repositories/         # InMemoryBookRepository
-    └── Services/             # TokenService
+    └── Services/             # TokenService, MemoryCacheService, BackgroundBookRefresherService
 ```
 
 ## Features
@@ -86,9 +86,13 @@ CursorDemo.sln
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
 | `POST` | `/api/auth/login` | ❌ | Authenticate and get JWT token |
-| `GET` | `/api/books` | ✅ | Get books (with pagination, filtering, sorting) |
-| `GET` | `/api/books/{id}` | ✅ | Get book by ID |
-| `POST` | `/api/books` | ✅ | Create a new book |
+| `GET` | `/api/v1/books` | ✅ | Get books (with pagination, filtering, sorting) |
+| `GET` | `/api/v1/books/{id}` | ✅ | Get book by ID |
+| `POST` | `/api/v1/books` | ✅ | Create a new book |
+| `POST` | `/api/cachetest/test` | ✅ | Test cache (set/get value) |
+| `GET` | `/api/cachetest/get/{key}` | ✅ | Get cached value by key |
+| `DELETE` | `/api/cachetest/remove/{key}` | ✅ | Remove cache entry by key |
+| `DELETE` | `/api/cachetest/remove-pattern` | ✅ | Remove cache entries by pattern |
 
 **Demo Credentials:**
 - Username: `elif`
@@ -260,13 +264,16 @@ The application uses Serilog for structured logging, providing rich, structured 
 - HTTP requests (method, path, status code, response time)
 - Exceptions and errors (with full stack traces)
 - Background worker execution
+- Cache operations (HIT, MISS, SET, INVALIDATE)
 - All application events at Information level and above
 
 **Example Log Output:**
 ```
 [2024-01-15 10:30:00 INF] Starting web application
 [2024-01-15 10:30:01 INF] Application started successfully
-[2024-01-15 10:30:15 INF] HTTP GET /api/books responded 200 in 45ms
+[2024-01-15 10:30:15 INF] HTTP GET /api/v1/books responded 200 in 45ms
+[2024-01-15 10:30:15 INF] Cache MISS for key: books:paged:page:1:pageSize:10:desc:False. Fetching from repository...
+[2024-01-15 10:30:15 INF] Cached result for key: books:paged:page:1:pageSize:10:desc:False (expires in 30 seconds)
 [2024-01-15 10:30:30 INF] Background refresh executed at 2024-01-15 10:30:30
 ```
 
@@ -317,6 +324,7 @@ The application implements in-memory caching to improve performance by reducing 
 - **List Results**: `GetBooksPagedAsync` results are cached for 30 seconds
 - **Cache Key Generation**: Keys are generated based on pagination parameters (page, pageSize, search, sortBy, desc) to ensure different queries are cached separately
 - **Cache Invalidation**: When a new book is created via `CreateBookAsync`, all book list caches are invalidated using pattern-based removal (`books:*`)
+- **Cache Logging**: All cache operations (HIT, MISS, SET, INVALIDATE) are logged via Serilog for monitoring and debugging
 
 **Example Cache Keys:**
 ```
@@ -372,11 +380,43 @@ public class BookService : IBookService
 }
 ```
 
+### Cache Logging
+
+All cache operations are logged via Serilog for monitoring and debugging:
+
+**Example Log Output:**
+```
+[2024-01-15 10:30:15 INF] Cache MISS for key: books:paged:page:1:pageSize:10:desc:False. Fetching from repository...
+[2024-01-15 10:30:15 INF] Cached result for key: books:paged:page:1:pageSize:10:desc:False (expires in 30 seconds)
+[2024-01-15 10:30:20 INF] Cache HIT for key: books:paged:page:1:pageSize:10:desc:False
+[2024-01-15 10:30:25 INF] Cache invalidated for pattern: books:*
+```
+
+### Testing Cache
+
+**Method 1: Automatic Logging (Recommended)**
+1. Call `GET /api/v1/books?page=1&pageSize=10` (first call)
+   - Check logs: `Cache MISS` - data fetched from repository
+2. Call the same endpoint again (within 30 seconds)
+   - Check logs: `Cache HIT` - data served from cache
+3. Create a new book via `POST /api/v1/books`
+   - Check logs: `Cache invalidated` - all book caches cleared
+4. Call `GET /api/v1/books` again
+   - Check logs: `Cache MISS` - cache was cleared, fetching fresh data
+
+**Method 2: Cache Test Endpoints**
+Use the `CacheTestController` endpoints to manually test cache operations:
+- `POST /api/cachetest/test?key=test:key&value=test-value&expirationSeconds=30` - Set and get a test value
+- `GET /api/cachetest/get/{key}` - Retrieve a cached value
+- `DELETE /api/cachetest/remove/{key}` - Remove a specific cache entry
+- `DELETE /api/cachetest/remove-pattern?pattern=books:*` - Remove all entries matching a pattern
+
 ### Benefits
 
 - **Performance**: Reduces repository calls for frequently accessed data
 - **Scalability**: Helps handle high-traffic scenarios by serving cached responses
 - **Flexibility**: Pattern-based invalidation allows selective cache clearing
+- **Observability**: Comprehensive logging for cache operations (HIT/MISS/SET/INVALIDATE)
 - **Clean Architecture**: Caching logic is abstracted behind an interface, making it easy to swap implementations (e.g., Redis for distributed caching)
 
 ## How to Run

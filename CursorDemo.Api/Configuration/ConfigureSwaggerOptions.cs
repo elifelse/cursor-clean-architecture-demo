@@ -19,7 +19,6 @@ public class ConfigureSwaggerOptions : IConfigureOptions<SwaggerGenOptions>
 
     public void Configure(SwaggerGenOptions options)
     {
-        // Create Swagger document for each API version
         foreach (var description in _provider.ApiVersionDescriptions)
         {
             options.SwaggerDoc(

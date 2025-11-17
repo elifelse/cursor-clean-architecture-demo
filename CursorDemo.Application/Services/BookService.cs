@@ -3,6 +3,7 @@ using CursorDemo.Application.Interfaces;
 using CursorDemo.Application.Models;
 using CursorDemo.Domain.Entities;
 using CursorDemo.Domain.Interfaces;
+using Microsoft.Extensions.Logging;
 using System.Text;
 
 namespace CursorDemo.Application.Services;
@@ -11,13 +12,15 @@ public class BookService : IBookService
 {
     private readonly IBookRepository _bookRepository;
     private readonly ICacheService _cacheService;
+    private readonly ILogger<BookService> _logger;
     private const int CacheExpirationSeconds = 30;
     private const string CacheKeyPrefix = "books:";
 
-    public BookService(IBookRepository bookRepository, ICacheService cacheService)
+    public BookService(IBookRepository bookRepository, ICacheService cacheService, ILogger<BookService> logger)
     {
         _bookRepository = bookRepository;
         _cacheService = cacheService;
+        _logger = logger;
     }
 
     public async Task<IEnumerable<BookDto>> GetAllBooksAsync()
@@ -35,8 +38,11 @@ public class BookService : IBookService
         var cachedResult = _cacheService.Get<PagedResult<BookDto>>(cacheKey);
         if (cachedResult != null)
         {
+            _logger.LogInformation("Cache HIT for key: {CacheKey}", cacheKey);
             return cachedResult;
         }
+
+        _logger.LogInformation("Cache MISS for key: {CacheKey}. Fetching from repository...", cacheKey);
 
         // If not in cache, fetch from repository
         var (items, totalCount) = await _bookRepository.GetPagedAsync(
@@ -59,6 +65,7 @@ public class BookService : IBookService
 
         // Cache the result for 30 seconds
         _cacheService.Set(cacheKey, result, TimeSpan.FromSeconds(CacheExpirationSeconds));
+        _logger.LogInformation("Cached result for key: {CacheKey} (expires in {Seconds} seconds)", cacheKey, CacheExpirationSeconds);
 
         return result;
     }
@@ -85,6 +92,7 @@ public class BookService : IBookService
 
         // Invalidate all book list caches when a new book is created
         _cacheService.RemoveByPattern($"{CacheKeyPrefix}*");
+        _logger.LogInformation("Cache invalidated for pattern: {Pattern}", $"{CacheKeyPrefix}*");
 
         return MapToDto(createdBook);
     }
