@@ -1,4 +1,8 @@
 using System.Text;
+using Asp.Versioning;
+using Asp.Versioning.ApiExplorer;
+using CursorDemo.Api.Configuration;
+using System.Reflection;
 using CursorDemo.Api.Extensions;
 using CursorDemo.Api.Filters;
 using CursorDemo.Api.Middleware;
@@ -12,9 +16,12 @@ using CursorDemo.Infrastructure.Services;
 using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Serilog;
+using Swashbuckle.AspNetCore.SwaggerGen;
 
 // Configure Serilog
 Log.Logger = new LoggerConfiguration()
@@ -32,6 +39,24 @@ try
 
     // Use Serilog for logging
     builder.Host.UseSerilog();
+
+    // Add API Versioning
+    builder.Services.AddApiVersioning(options =>
+    {
+        options.DefaultApiVersion = new ApiVersion(1, 0);
+        options.AssumeDefaultVersionWhenUnspecified = true;
+        options.ReportApiVersions = true;
+        options.ApiVersionReader = ApiVersionReader.Combine(
+            new UrlSegmentApiVersionReader()
+        );
+    })
+    .AddMvc()
+    .AddApiExplorer(options =>
+    {
+        options.GroupNameFormat = "'v'VVV";
+        options.SubstituteApiVersionInUrl = true;
+        options.DefaultApiVersion = new ApiVersion(1, 0);
+    });
 
     // Add services to the container
     builder.Services.AddControllers(options =>
@@ -73,14 +98,16 @@ try
         };
     });
 
-    // Configure Swagger with JWT support
-    builder.Services.AddSwaggerGen(c =>
+    // Configure Swagger with JWT support and API versioning
+    builder.Services.AddTransient<IConfigureOptions<SwaggerGenOptions>, ConfigureSwaggerOptions>();
+    builder.Services.AddSwaggerGen(options =>
     {
-        c.SwaggerDoc("v1", new OpenApiInfo
+        // Filter endpoints by API version - use ApiExplorer's GroupName
+        options.DocInclusionPredicate((docName, apiDesc) =>
         {
-            Title = "CursorDemo API",
-            Version = "v1",
-            Description = "Clean Architecture Demo API with JWT Authentication and FluentValidation"
+            // ApiExplorer automatically sets GroupName based on API version
+            // Match the document name with the GroupName
+            return apiDesc.GroupName == docName;
         });
 
         // Include XML comments for better Swagger documentation
@@ -88,11 +115,11 @@ try
         var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
         if (File.Exists(xmlPath))
         {
-            c.IncludeXmlComments(xmlPath);
+            options.IncludeXmlComments(xmlPath);
         }
 
         // Add JWT authentication to Swagger
-        c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+        options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
         {
             Description = "JWT Authorization header using the Bearer scheme. Enter 'Bearer' [space] and then your token in the text input below.",
             Name = "Authorization",
@@ -101,7 +128,7 @@ try
             Scheme = "Bearer"
         });
 
-        c.AddSecurityRequirement(new OpenApiSecurityRequirement
+        options.AddSecurityRequirement(new OpenApiSecurityRequirement
         {
             {
                 new OpenApiSecurityScheme
@@ -139,7 +166,16 @@ try
     if (app.Environment.IsDevelopment())
     {
         app.UseSwagger();
-        app.UseSwaggerUI();
+        app.UseSwaggerUI(options =>
+        {
+            var apiVersionDescriptionProvider = app.Services.GetRequiredService<IApiVersionDescriptionProvider>();
+            foreach (var description in apiVersionDescriptionProvider.ApiVersionDescriptions.Reverse())
+            {
+                options.SwaggerEndpoint(
+                    $"/swagger/{description.GroupName}/swagger.json",
+                    $"CursorDemo API {description.GroupName.ToUpperInvariant()}");
+            }
+        });
     }
 
     app.UseHttpsRedirection();

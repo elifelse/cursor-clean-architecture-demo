@@ -1,3 +1,4 @@
+using Asp.Versioning;
 using CursorDemo.Application.DTOs;
 using CursorDemo.Application.Interfaces;
 using Microsoft.AspNetCore.Mvc;
@@ -5,7 +6,9 @@ using Microsoft.AspNetCore.Mvc;
 namespace CursorDemo.Api.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/v{version:apiVersion}/[controller]")]
+[ApiVersion("1.0")]
+[ApiVersion("2.0")]
 public class AuthController : ControllerBase
 {
     private readonly ITokenService _tokenService;
@@ -22,8 +25,14 @@ public class AuthController : ControllerBase
     /// Demo credentials:
     /// - Username: elif
     /// - Password: 1234
+    /// 
+    /// This endpoint is available at:
+    /// - /api/v1/auth/login
+    /// - /api/v2/auth/login
     /// </remarks>
     [HttpPost("login")]
+    [ProducesResponseType(typeof(TokenResponseDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public IActionResult Login([FromBody] LoginDto loginDto)
     {
         // Hardcoded demo user

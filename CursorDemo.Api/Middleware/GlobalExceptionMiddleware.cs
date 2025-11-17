@@ -35,9 +35,9 @@ public class GlobalExceptionMiddleware
             // Only handle exception if response hasn't been written yet
             // This ensures validation errors are not overridden
             if (!context.Response.HasStarted)
-            {
-                _logger.LogError(ex, "An unhandled exception occurred: {Message}", ex.Message);
-                await HandleExceptionAsync(context, ex);
+        {
+            _logger.LogError(ex, "An unhandled exception occurred: {Message}", ex.Message);
+            await HandleExceptionAsync(context, ex);
             }
             else
             {
