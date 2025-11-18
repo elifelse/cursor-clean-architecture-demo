@@ -1,5 +1,8 @@
 # Cursor Clean Architecture Demo
 
+[![.NET](https://github.com/YOUR_USERNAME/cursor-clean-architecture-demo/actions/workflows/ci.yml/badge.svg)](https://github.com/YOUR_USERNAME/cursor-clean-architecture-demo/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 A .NET 8 Web API implementation demonstrating Clean Architecture principles with JWT authentication.
 
 ## Overview
@@ -80,6 +83,8 @@ CursorDemo.sln
 - ✅ **Serilog Structured Logging** - Console and file logging with structured output
 - ✅ **Background Worker** - Long-running hosted service for periodic tasks
 - ✅ **In-Memory Caching** - Performance optimization with configurable cache expiration and pattern-based invalidation
+- ✅ **Unit Tests** - Comprehensive test coverage with xUnit, Moq, and FluentAssertions
+- ✅ **Frontend UI** - Modern, responsive web interface for book management
 
 ## Endpoints
 
@@ -439,7 +444,8 @@ dotnet run
 ```
 
 **Access:**
-- API: `https://localhost:5001` or `http://localhost:5000`
+- Frontend UI: `https://localhost:5001` or `http://localhost:5000`
+- API: `https://localhost:5001/api` or `http://localhost:5000/api`
 - Swagger: `https://localhost:5001/swagger`
 
 ### Testing Authentication
@@ -449,6 +455,57 @@ dotnet run
 3. Copy the token from response
 4. Click "Authorize" button and enter: `Bearer <token>`
 5. Test protected endpoints
+
+## Frontend
+
+The project includes a modern, responsive web interface built with vanilla HTML, CSS, and JavaScript. The frontend provides a user-friendly interface for managing books.
+
+### Features
+
+- 🔐 **JWT Authentication** - Secure login with token-based authentication
+- 📚 **Book Listing** - Display books in a responsive grid layout
+- 🔍 **Search & Filter** - Search by title, author, or ISBN
+- 📊 **Sorting** - Sort books by various fields (title, author, ISBN, published date)
+- ➕ **Add Books** - Create new books through a modal form
+- 📄 **Pagination** - Navigate through pages of results
+- 🎨 **Modern UI** - Beautiful gradient design with smooth animations
+
+### Frontend Structure
+
+```
+CursorDemo.Api/wwwroot/
+├── index.html          # Main HTML page
+├── css/
+│   └── style.css      # Styling and responsive design
+└── js/
+    ├── api.js         # API client and authentication
+    └── app.js         # Application logic and UI management
+```
+
+### Usage
+
+1. Start the API server:
+   ```bash
+   cd CursorDemo.Api
+   dotnet run
+   ```
+
+2. Open your browser and navigate to:
+   - `https://localhost:5001` or `http://localhost:5000`
+
+3. Login with demo credentials:
+   - Username: `elif`
+   - Password: `1234`
+
+4. Start managing books!
+
+### Frontend Technologies
+
+- **HTML5** - Semantic markup
+- **CSS3** - Modern styling with gradients and animations
+- **Vanilla JavaScript** - No framework dependencies
+- **Fetch API** - Modern HTTP client
+- **LocalStorage** - Token persistence
 
 ## Technologies
 
@@ -461,10 +518,63 @@ dotnet run
 | Serilog | Structured logging |
 | Swagger/OpenAPI | API documentation |
 | Clean Architecture | Architecture pattern |
+| HTML/CSS/JavaScript | Frontend UI |
+
+## Testing
+
+The project includes comprehensive unit tests using xUnit, Moq, and FluentAssertions. Tests are organized in the `CursorDemo.Tests` project.
+
+### Test Structure
+
+```
+CursorDemo.Tests/
+├── Services/
+│   └── BookServiceTests.cs          # Unit tests for BookService
+├── Repositories/
+│   └── InMemoryBookRepositoryTests.cs # Unit tests for repository
+└── Integration/
+    └── BooksControllerIntegrationTests.cs # Integration tests (in progress)
+```
+
+### Running Tests
+
+```bash
+# Run all tests
+dotnet test
+
+# Run tests for a specific project
+dotnet test CursorDemo.Tests/CursorDemo.Tests.csproj
+
+# Run with detailed output
+dotnet test --verbosity normal
+
+# Run specific test class
+dotnet test --filter "FullyQualifiedName~BookServiceTests"
+```
+
+### Test Coverage
+
+**Unit Tests:**
+- ✅ BookService - All methods tested with mocked dependencies
+- ✅ InMemoryBookRepository - Full CRUD operations and pagination tested
+
+**Test Statistics:**
+- Total Tests: 31
+- Unit Tests: 22 (All passing)
+- Integration Tests: 9 (In progress - WebApplicationFactory configuration needed)
+
+### Test Technologies
+
+| Technology | Purpose |
+|-----------|---------|
+| xUnit | Test framework |
+| Moq | Mocking framework for dependencies |
+| FluentAssertions | Fluent assertion library for readable tests |
+| Microsoft.AspNetCore.Mvc.Testing | Integration testing support |
 
 ## Future Enhancements
 
-- Unit & integration tests
+- Complete integration tests setup
 - Entity Framework Core integration
 - CQRS with MediatR
 

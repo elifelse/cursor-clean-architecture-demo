@@ -184,14 +184,26 @@ try
     }
 
     app.UseHttpsRedirection();
+    
+    // Enable static files for frontend
+    app.UseStaticFiles();
+    
     app.UseRequestLogging();
     app.UseGlobalExceptionMiddleware();
     app.UseAuthentication();
     app.UseAuthorization();
     app.MapControllers();
+    
+    // Default route to index.html
+    app.MapFallbackToFile("index.html");
 
     Log.Information("Application started successfully");
-    app.Run();
+    
+    // Don't run the app in test environment (WebApplicationFactory handles this)
+    if (app.Environment.EnvironmentName != "Testing")
+    {
+        app.Run();
+    }
 }
 catch (Exception ex)
 {
@@ -202,4 +214,7 @@ finally
 {
     Log.CloseAndFlush();
 }
+
+// Make Program class accessible for WebApplicationFactory in integration tests
+public partial class Program { }
 
